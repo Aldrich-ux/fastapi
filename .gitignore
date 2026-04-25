@@ -1,0 +1,4 @@
+.idea
+.vscode
+.venv
+app/__init__.py
