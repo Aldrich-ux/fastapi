@@ -1,10 +1,10 @@
+from typing import List
 from fastapi import Depends, FastAPI, Response, status, HTTPException
-from pydantic import BaseModel
 import psycopg
 from psycopg.rows import dict_row
 import time
 from sqlalchemy.orm import Session
-from . import models
+from . import models, schemas
 from .database import engine, get_db
 
 
@@ -12,13 +12,6 @@ models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
-
-
-# pydantic/schema model define the structure of a request & response
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
 
 
 while True:
@@ -51,8 +44,8 @@ def root():
     return {"message": "Welcome to my first API!"}
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post, db: Session = Depends(get_db)):
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # Note: do not use f-string to avoid SQL injection attack
     # new_post = cursor.execute(
     #     "INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *",
@@ -60,31 +53,23 @@ def create_post(post: Post, db: Session = Depends(get_db)):
     # Note: cursor.execute() only staged changes,
     # you need to commit() to save changes to database (similar to `git`)
     # conn.commit() 
-    new_post = models.Post(**post.model_dump())
+    new_post = models.Post(**post.model_dump()) # SQLAlchemy model
     db.add(new_post) # stage changes
     db.commit() # commit to database
     db.refresh(new_post) # refresh instance with new data from database
 
-    return {"post": new_post}
+    return new_post
 
  
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
     # posts = cursor.execute("SELECT * FROM posts").fetchall()
     posts = db.query(models.Post).all()
-    return {"data": posts}
-
-
-@app.get("/sqlalchemy")
-def test_post(db: Session = Depends(get_db)):
-    # send actually raw SQL command,
-    # but write code with abstracted way.
-    posts = db.query(models.Post).all()
-    return {"data": posts}
+    return posts
 
 
 # {id} called path_parameter
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("SELECT * FROM posts WHERE id = %s", (id,))
     # post = cursor.fetchone()
@@ -96,11 +81,11 @@ def get_post(id: int, db: Session = Depends(get_db)):
             detail=f"post with id: {id} was not found"
         )
     
-    return {"post_detail": post}
+    return post
 
 
-@app.put("/posts/{id}")
-def update_post(id: int, post: Post, db: Session = Depends(get_db)):
+@app.put("/posts/{id}", response_model=schemas.Post)
+def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute(
     #     "UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *",
     #     (post.title, post.content, post.published, id))
@@ -119,8 +104,8 @@ def update_post(id: int, post: Post, db: Session = Depends(get_db)):
     post_query.update(post.model_dump(), synchronize_session=False)
     db.commit()
     
-    return {"data": post_query.first()}
-    
+    return post_query.first()
+
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db)):
