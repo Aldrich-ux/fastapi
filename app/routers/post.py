@@ -13,7 +13,7 @@ router = APIRouter(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_post(post: schemas.PostCreate, 
                 db: Session = Depends(get_db),
-                current_user: int = Depends(oauth2.get_current_user)):
+                current_user: models.User = Depends(oauth2.get_current_user)):
     # Note: do not use f-string to avoid SQL injection attack
     # new_post = cursor.execute(
     #     "INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *",
@@ -21,7 +21,7 @@ def create_post(post: schemas.PostCreate,
     # Note: cursor.execute() only staged changes,
     # you need to commit() to save changes to database (similar to `git`)
     # conn.commit() 
-    new_post = models.Post(**post.model_dump()) # SQLAlchemy model
+    new_post = models.Post(**post.model_dump(), owner_id=current_user.id) # SQLAlchemy model
     db.add(new_post) # stage changes
     db.commit() # commit to database
     db.refresh(new_post) # refresh instance with new data from database
@@ -71,6 +71,12 @@ def update_post(id: int, post: schemas.PostCreate,
             detail=f"post with id: {id} was not found"
         )
     
+    if updated_post.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to perform requested action"
+        )
+    
     # Note: pydantic model (post) != SQLAlchemy model (updated_post)
     post_query.update(post.model_dump(), synchronize_session=False)
     db.commit()
@@ -92,6 +98,12 @@ def delete_post(id: int, db: Session = Depends(get_db),
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id: {id} was not found"
         ) 
+    
+    if deleted_post.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to perform requested action"
+        )
     
     post_query.delete(synchronize_session=False)
     db.commit()

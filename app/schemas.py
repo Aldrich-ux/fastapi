@@ -4,17 +4,6 @@ from datetime import datetime
 
 
 # pydantic/schema model define the structure of a request & response
-class PostBase(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-
-class PostCreate(PostBase):
-    pass
-
-class Post(PostBase):
-    id: int
-    created_at: datetime
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -28,6 +17,20 @@ class UserOut(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    
+class PostBase(BaseModel):
+    title: str
+    content: str
+    published: bool = True
+
+class PostCreate(PostBase):
+    pass
+
+class Post(PostBase):
+    id: int
+    created_at: datetime
+    owner_id: int
+    owner: UserOut
 
 class Token(BaseModel):
     access_token: str
