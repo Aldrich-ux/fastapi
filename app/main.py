@@ -1,7 +1,4 @@
 from fastapi import FastAPI
-import psycopg
-from psycopg.rows import dict_row
-import time
 from . import models
 from .database import engine
 from .routers import post, user, auth
@@ -17,25 +14,9 @@ from .routers import post, user, auth
 # -----------------------------------------------------------
 
 
-app = FastAPI()
-
-
 models.Base.metadata.create_all(bind=engine)
 
-
-while True:
-    try:
-        conn = psycopg.connect(
-            conninfo="host=localhost dbname=fastapi user=postgres password=aldrich1028",
-            row_factory=dict_row)
-        cursor = conn.cursor()
-        print("Database connection was successful!")
-        break
-    except Exception as e:
-        print("Database connection failed!")
-        print("Error:", e)
-        time.sleep(2)
-
+app = FastAPI()
 
 app.include_router(post.router)
 app.include_router(user.router)
