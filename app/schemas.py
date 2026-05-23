@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
@@ -32,9 +32,17 @@ class Post(PostBase):
     owner_id: int
     owner: UserOut
 
+class PostOut(BaseModel):
+    post: Post
+    vote: int
+
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
     id: Optional[int] = None
+
+class Vote(BaseModel):
+    post_id: int
+    dir: Literal[0, 1] # direction of vote, 1 for upvote, 0 for remove vote
