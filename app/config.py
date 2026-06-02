@@ -1,15 +1,17 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
-    database_url: str | None = None
-    database_username: str | None = None
-    database_password: str | None = None
-    database_hostname: str | None = None
-    database_port: str | None = None
-    database_name: str | None = None
+    database_url: Optional[str] = None
+    database_username: Optional[str] = None
+    database_password: Optional[str] = None
+    database_hostname: Optional[str] = None
+    database_port: Optional[str] = None
+    database_name: Optional[str] = None
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
