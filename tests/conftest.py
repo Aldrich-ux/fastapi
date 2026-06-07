@@ -2,6 +2,7 @@ import os
 import sys
 import pytest
 from fastapi.testclient import TestClient
+from app import oauth2, models
 from app.database import get_db, Base
 from app.main import app
 from sqlalchemy import create_engine
@@ -22,7 +23,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 # scope define how long the fixture will be used
-@pytest.fixture()
+@pytest.fixture
 def session():
     # drop before each test run, keep table if test fails.
     Base.metadata.drop_all(bind=engine)
@@ -33,8 +34,7 @@ def session():
     finally:
         db.close()
 
-
-@pytest.fixture()
+@pytest.fixture
 def client(session):
     def override_get_db():
         try:
@@ -46,7 +46,6 @@ def client(session):
     yield TestClient(app)
     # Base.metadata.drop_all(bind=engine)
 
-
 @pytest.fixture
 def test_user(client):
     user_data = {"email": "qianzhiyuan@gmail.com",
@@ -56,3 +55,56 @@ def test_user(client):
     new_user = res.json()
     new_user["password"] = user_data["password"]
     return new_user
+
+
+@pytest.fixture
+def test_user2(client):
+    user_data = {"email": "test2@gmail.com",
+                 "password": "password123"}
+    res = client.post("/users/", json=user_data)
+    assert res.status_code == 201
+    new_user = res.json()
+    new_user["password"] = user_data["password"]
+    return new_user
+
+
+@pytest.fixture
+def token(test_user):
+    return oauth2.create_access_token({"user_id": test_user["id"]})
+
+
+@pytest.fixture
+def authorized_client(client, token):
+    client.headers = {
+        **client.headers,
+        "Authorization": f"Bearer {token}"
+    }
+    return client
+
+
+@pytest.fixture
+def test_posts(test_user, test_user2, session):
+    post_data = [
+        {"title": "first title", "content": "first content", "owner_id": test_user["id"]},
+        {"title": "second title", "content": "second content", "owner_id": test_user["id"]},
+        {"title": "third title", "content": "third content", "owner_id": test_user["id"]},
+        {"title": "fourth title", "content": "fourth content", "owner_id": test_user2["id"]}, 
+    ]
+
+    def create_post_model(post):
+        return models.Post(**post)
+
+    post_map = map(create_post_model, post_data)
+    posts = list(post_map)
+    session.add_all(posts)
+    session.commit()
+
+    # session.add_all([
+    #     models.Post(title="first title", content="first content", owner_id=test_user["id"]),
+    #     models.Post(title="second title", content="second content", owner_id=test_user["id"]),
+    #     models.Post(title="third title", content="third content", owner_id=test_user["id"]),
+    # ])
+    # session.commit()
+
+    posts = session.query(models.Post).all()
+    return posts
