@@ -1,21 +1,26 @@
 name: Build and Deploy Code
 
 on:
-    push:
-        branches:
-            - main
-            - CI/CD
-    pull_request:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+      - CI/CD
+  pull_request:
+    branches:
+      - main
 
 jobs:
     job1:
-        runs-on: ubuntu-latest
-        steps:
-            - name: pulling git repo
-              uses: actions/checkout@v6
-            - name: say hi to aldrich
-              run: echo "Hi Aldrich!"
-            
-            
+      runs-on: ubuntu-latest
+      steps:
+        - name: Pulling Git Repo
+          uses: actions/checkout@v6
+        - name: Install Python version 3.9
+          uses: actions/setup-python@v6
+          with:
+            python-version: 3.9
+        - name: Upgrade pip
+          run: python -m pip install --upgrade pip
+        - name: Install dependencies
+          run: pip install -r requirements.txt
+
