@@ -14,7 +14,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: pulling git repo
-              uses: actions/checkout@v7
+              uses: actions/checkout@v6
             - name: say hi to aldrich
               run: echo "Hi Aldrich!"
             
