@@ -60,4 +60,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploying Stuff
-        run: echo "Deploying something"
+        run: echo "🎉 CD is automated by railway"
